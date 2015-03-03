@@ -2,6 +2,9 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var Promise = require('bluebird');
+var bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
+var uuid = require('uuid');
 
 
 var db = require('./app/config');
@@ -12,6 +15,7 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 
 var app = express();
+var session = require('express-session');
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -19,18 +23,35 @@ app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
 // Parse forms (signup/login)
+// app.use(express.cookieParser('shhhh, very secret'));
+//
+
+app.use(session({
+  genid: function(req) {
+    return uuid.v1(); // use UUIDs for session IDs
+  },
+  secret: 'dinosaur'
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
 
 app.get('/',
 function(req, res) {
-  res.render('index');
+  if (req.session.user) {
+    res.render('index');
+  } else {
+    res.redirect('/login');
+  }
 });
 
 app.get('/create',
 function(req, res) {
-  res.render('index');
+  if (req.session.user) {
+    res.render('index');
+  } else {
+    res.redirect('/login');
+  }
 });
 
 app.get('/signup',
@@ -45,8 +66,19 @@ function(req, res) {
 
 app.get('/links',
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+  if (req.session.user){
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
+  }else{
+    res.redirect('/login');
+  }
+});
+
+app.get('/logout', function(req,res){
+  req.session.destroy(function(err){
+    if (err){console.log(err)}
+    res.redirect('/');
   });
 });
 
@@ -90,9 +122,28 @@ function(req, res) {
 
 app.post('/login',
 function(req, res) {
-  res.send(201);
-}
-  );
+  var name = req.body.username;
+  var password = req.body.password;
+  db.knex('users').where('username', '=', name).then(function(result) {
+
+    var user = result[0];
+
+    if (!user){
+      res.redirect('/login');
+    }else{
+      bcrypt.hashAsync(password, user.salt, null).then(function(hash) {
+        if (hash === user.password){
+          req.session.regenerate(function(){
+            req.session.user = user.username;
+            res.redirect('/');
+          });
+        }else{
+          res.redirect('/login');
+        }
+      });
+    }
+  });
+});
 
 app.post('/signup',
 function(req, res) {
@@ -102,9 +153,11 @@ function(req, res) {
           'username': name,
           'password': password
       }).save();
-  res.send(201);
-}
-  );
+  req.session.regenerate(function(){
+    req.session.user = name;
+    res.redirect('/');
+  });
+});
 
 
 /************************************************************/

@@ -13,8 +13,14 @@ var User = db.Model.extend({
 
   initialize: function(){
     this.on('creating', function(model, attrs, options) {
-      return bcrypt.hashAsync(model.get('password'), null, function(err, hash) {
-        return model.set('password', hash);
+      // return bcrypt.hashAsync(model.get('password'), null, function(err, hash) {
+      //   return model.set('password', hash);
+      // });
+      return bcrypt.genSaltAsync(10).then(function(result) {
+        model.set('salt', result);
+        return bcrypt.hashAsync(model.get('password'), result, null);
+      }).then(function(hash) {
+        model.set('password', hash);
       });
     });
   }
