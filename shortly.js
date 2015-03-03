@@ -33,6 +33,16 @@ function(req, res) {
   res.render('index');
 });
 
+app.get('/signup',
+function(req, res) {
+  res.render('signup');
+});
+
+app.get('/login',
+function(req, res) {
+  res.render('login');
+});
+
 app.get('/links',
 function(req, res) {
   Links.reset().fetch().then(function(links) {
@@ -80,7 +90,18 @@ function(req, res) {
 
 app.post('/login',
 function(req, res) {
-  console.log(req);
+  res.send(201);
+}
+  );
+
+app.post('/signup',
+function(req, res) {
+  var name = req.body.username;
+  var password = req.body.password;
+  new User({
+          'username': name,
+          'password': password
+      }).save();
   res.send(201);
 }
   );

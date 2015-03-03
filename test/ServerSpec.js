@@ -129,7 +129,6 @@ describe('', function() {
             .then(function(urls) {
               if (urls['0'] && urls['0']['url']) {
                 var foundUrl = urls['0']['url'];
-                console.log(foundUrl);
               }
               expect(foundUrl).to.equal('http://www.roflzoo.com/');
               done();
