@@ -7,7 +7,7 @@ var User = require('../app/models/user');
 var Links = require('../app/collections/links');
 var Link = require('../app/models/link');
 
-console.log(db);
+
 
 /************************************************************/
 // Mocha doesn't have a way to designate pending before blocks.
